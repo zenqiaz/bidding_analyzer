@@ -3,7 +3,7 @@
 # Run as root: bash setup.sh
 #
 # Expects:
-#   - This repo cloned locally (recommended /opt/bridge/src)
+
 #   - /opt/bridge/.env written with DISCORD_TOKEN, OPENAI_API_KEY, etc.
 
 set -euo pipefail
