@@ -1,0 +1,17 @@
+[Unit]
+Description=Bridge Deal Discord Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/bridge/bot
+ExecStart=/bin/bash -c 'set -a && source /opt/bridge/.env && set +a && PYTHONUNBUFFERED=1 exec /opt/bridge/venv/bin/python3 -u /opt/bridge/bot/bot.py'
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
