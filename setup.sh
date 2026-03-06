@@ -4,7 +4,7 @@
 #
 # Expects:
 #   - This repo cloned to /opt/bridge/src  (git clone ... /opt/bridge/src)
-#   - /opt/bridge/.env written with DISCORD_TOKEN, ANTHROPIC_API_KEY, etc.
+#   - /opt/bridge/.env written with DISCORD_TOKEN, OPENAI_API_KEY, etc.
 
 set -euo pipefail
 
@@ -70,7 +70,7 @@ touch "$DEAL_DIR/custom.tcl"
 echo "=== 6. Python environment ==="
 python3 -m venv "$BRIDGE_DIR/venv"
 "$BRIDGE_DIR/venv/bin/pip" install --quiet --upgrade pip
-"$BRIDGE_DIR/venv/bin/pip" install --quiet discord.py anthropic
+"$BRIDGE_DIR/venv/bin/pip" install --quiet discord.py openai
 
 echo "=== 7. Install bot files ==="
 cp "$SRC_DIR/deploy/bot.py"          "$BOT_DIR/"
@@ -82,8 +82,9 @@ echo "=== 8. .env file ==="
 if [[ ! -f "$BRIDGE_DIR/.env" ]]; then
     cat > "$BRIDGE_DIR/.env" <<'EOF'
 DISCORD_TOKEN=your_discord_bot_token_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
 # Optional: fill in for instant slash-command registration in one guild
+# OPENAI_MODEL=gpt-4.1
 # DISCORD_GUILD_ID=123456789012345678
 BRIDGE_DIR=/opt/bridge
 EOF
@@ -107,7 +108,7 @@ echo " Setup complete."
 echo ""
 echo " Next steps:"
 echo "   1. Edit /opt/bridge/.env with your Discord token and"
-echo "      Anthropic API key."
+echo "      OpenAI API key."
 echo "   2. Start the bot:  systemctl start bridge-bot"
 echo "   3. Check logs:     journalctl -u bridge-bot -f"
 echo ""

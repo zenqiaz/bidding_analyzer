@@ -2,7 +2,8 @@
 
 Environment variables required:
     DISCORD_TOKEN       — Discord bot token
-    ANTHROPIC_API_KEY   — Anthropic API key
+    OPENAI_API_KEY      — OpenAI API key
+    OPENAI_MODEL        — (optional) OpenAI model, default gpt-4.1
     DISCORD_GUILD_ID    — (optional) Guild ID for instant slash-command registration
     BRIDGE_DIR          — (optional) Install root, default /opt/bridge
 """
@@ -11,16 +12,16 @@ import os
 import json
 import asyncio
 import subprocess
-import tempfile
 import textwrap
 
 import discord
 from discord import app_commands
-import anthropic
+from openai import OpenAI
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
-ANTHROPIC_KEY = os.environ["ANTHROPIC_API_KEY"]
+OPENAI_KEY = os.environ["OPENAI_API_KEY"]
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1")
 GUILD_ID      = int(os.environ["DISCORD_GUILD_ID"]) if os.environ.get("DISCORD_GUILD_ID") else None
 
 BRIDGE_DIR  = os.environ.get("BRIDGE_DIR", "/opt/bridge")
@@ -28,7 +29,7 @@ DEAL_DIR    = os.path.join(BRIDGE_DIR, "deal")
 PIPELINE    = os.path.join(BRIDGE_DIR, "bot", "run_pipeline.py")
 CUSTOM_TCL  = os.path.join(DEAL_DIR, "custom.tcl")
 
-# Load skill knowledge for Claude system prompt
+# Load skill knowledge for the LLM system prompt
 _HERE = os.path.dirname(__file__)
 SKILL_MD   = open(os.path.join(_HERE, "SKILL.md"),   encoding="utf-8").read()
 BIDDING_MD = open(os.path.join(_HERE, "bidding.md"), encoding="utf-8").read()
@@ -60,20 +61,23 @@ Skill reference (parsing rules):
 Output ONLY the JSON object. No explanation, no markdown fences.
 """.strip()
 
-# ── Claude helper ─────────────────────────────────────────────────────────────
-_client = anthropic.Anthropic(api_key=ANTHROPIC_KEY)
+# ── OpenAI helper ─────────────────────────────────────────────────────────────
+_client = OpenAI(api_key=OPENAI_KEY)
 
 
-def ask_claude(query: str) -> dict:
-    """Call Claude to translate a bridge query into tcl + contracts + n_deals."""
-    msg = _client.messages.create(
-        model="claude-sonnet-4-6",
+def ask_openai(query: str) -> dict:
+    """Call OpenAI to translate a bridge query into tcl + contracts + n_deals."""
+    msg = _client.chat.completions.create(
+        model=OPENAI_MODEL,
         max_tokens=1024,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": query}],
+        response_format={"type": "json_object"},
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": query},
+        ],
     )
-    text = msg.content[0].text.strip()
-    # Strip markdown fences if Claude ignores the instruction
+    text = (msg.choices[0].message.content or "").strip()
+    # Strip markdown fences if the model ignores the instruction
     if text.startswith("```"):
         text = text.split("```")[1]
         if text.startswith("json"):
@@ -130,8 +134,8 @@ async def bridge_cmd(interaction: discord.Interaction, query: str):
 
     loop = asyncio.get_running_loop()
     try:
-        # 1. Ask Claude to generate Tcl + contract info
-        plan = await loop.run_in_executor(None, ask_claude, query)
+        # 1. Ask OpenAI to generate Tcl + contract info
+        plan = await loop.run_in_executor(None, ask_openai, query)
 
         tcl       = plan["tcl"]
         contracts = plan.get("contracts", "N:3NT")
@@ -157,7 +161,7 @@ async def bridge_cmd(interaction: discord.Interaction, query: str):
         await interaction.followup.send(embed=embed)
 
     except json.JSONDecodeError as e:
-        await interaction.followup.send(f"Claude returned invalid JSON: {e}")
+        await interaction.followup.send(f"OpenAI returned invalid JSON: {e}")
     except RuntimeError as e:
         await interaction.followup.send(f"Pipeline error:\n```\n{str(e)[:800]}\n```")
     except Exception as e:

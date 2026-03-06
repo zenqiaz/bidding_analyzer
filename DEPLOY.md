@@ -8,7 +8,7 @@ Discord user
     ▼
 Discord Bot (deploy/bot.py)  — runs on VM at 188.166.232.163
     │
-    ├─ Claude API (generates custom.tcl from query)
+    ├─ OpenAI API (generates custom.tcl from query)
     │
     ├─ deal (from apt) + custom.tcl  → PBN lines
     │
@@ -57,7 +57,8 @@ nano /opt/bridge/.env
 
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
-ANTHROPIC_API_KEY=your_anthropic_api_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4.1                  # optional
 DISCORD_GUILD_ID=123456789012345678   # your server ID (for instant registration)
 BRIDGE_DIR=/opt/bridge
 ```
@@ -88,17 +89,17 @@ The `/bridge` slash command appears instantly in your guild (or within ~1 hour f
 
 ```
 /opt/bridge/
-  .env                  — secrets (DISCORD_TOKEN, ANTHROPIC_API_KEY)
+  .env                  — secrets (DISCORD_TOKEN, OPENAI_API_KEY)
   libdds.so             — DDS shared library (built from src/src/)
   solver_batch          — DDS solver binary (built from src/examples/)
-  venv/                 — Python virtualenv (discord.py, anthropic)
+  venv/                 — Python virtualenv (discord.py, openai)
   deal/
     pbn._nob.tcl        — PBN output format for deal319
     custom.tcl          — written at runtime by the bot
   bot/
     bot.py              — Discord bot
     run_pipeline.py     — deal → DDS pipeline
-    SKILL.md            — bridge-deal skill (Claude system prompt)
+    SKILL.md            — bridge-deal skill reference used in system prompt
     bidding.md          — SAYC bidding reference
   src/                  — git clone of this repo
 ```
